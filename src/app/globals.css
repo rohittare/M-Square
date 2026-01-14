@@ -1,101 +1,122 @@
 @import "tailwindcss";
 
-/* ===============================
-   COLOR TOKENS (OKLCH numbers)
-================================ */
-:root {
-  /* Swiggy brand */
-  --swiggy-orange: 0.69 0.19 48;
-  --swiggy-dark: 0.29 0.03 264;
-  --swiggy-gray: 0.55 0.03 264;
-  --swiggy-light-gray: 0.97 0.01 264;
-  --swiggy-green: 0.74 0.16 150;
-  --swiggy-gold: 0.75 0.18 90;
+@theme {
+  /* This maps your CSS variables to Tailwind utility classes */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
-  /* Base UI */
-  --background: 0.98 0 0;
-  --foreground: 0.18 0 0;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
 
-  --card: 1 0 0;
-  --card-foreground: 0.18 0 0;
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-  --border: 0.9 0 0;
-  --input: 0.92 0 0;
-  --ring: 0.69 0.19 48;
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-xl: var(--radius);
+  --radius-lg: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 4px);
+
+  /* Swiggy Custom Colors */
+  --color-swiggy-orange: var(--swiggy-orange);
+  --color-swiggy-dark: var(--swiggy-dark);
+  --color-swiggy-gray: var(--swiggy-gray);
+  --color-swiggy-light-gray: var(--swiggy-light-gray);
+  --color-swiggy-green: var(--swiggy-green);
+  --color-swiggy-gold: var(--swiggy-gold);
+
+  /* Fonts */
+  --font-poppins: "Poppins", sans-serif;
 }
 
-.dark {
-  --background: 0.15 0 0;
-  --foreground: 0.98 0 0;
+/* Base Styles & Variables */
+@layer base {
+  :root {
+    /* For v4, it is cleaner to wrap values in hsl() here 
+       so you can use them as raw variables too */
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(228 18% 20%);
 
-  --card: 0.18 0 0;
-  --card-foreground: 0.98 0 0;
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(228 18% 20%);
 
-  --border: 0.3 0 0;
-  --input: 0.3 0 0;
-  --ring: 0.75 0.18 90;
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(228 18% 20%);
+
+    --primary: hsl(27 97% 54%);
+    --primary-foreground: hsl(0 0% 100%);
+
+    --secondary: hsl(220 14% 96%);
+    --secondary-foreground: hsl(228 18% 20%);
+
+    --muted: hsl(220 14% 96%);
+    --muted-foreground: hsl(224 5% 52%);
+
+    --accent: hsl(144 52% 53%);
+    --accent-foreground: hsl(0 0% 100%);
+
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: hsl(220 13% 91%);
+    --input: hsl(220 13% 91%);
+    --ring: hsl(27 97% 54%);
+
+    --radius: 0.75rem;
+
+    --swiggy-orange: hsl(27 97% 54%);
+    --swiggy-dark: hsl(228 18% 20%);
+    --swiggy-gray: hsl(224 5% 52%);
+    --swiggy-light-gray: hsl(220 14% 96%);
+    --swiggy-green: hsl(144 52% 53%);
+    --swiggy-gold: hsl(45 93% 47%);
+  }
+
+  .dark {
+    --background: hsl(228 18% 10%);
+    --foreground: hsl(0 0% 98%);
+    --card: hsl(228 18% 12%);
+    --card-foreground: hsl(0 0% 98%);
+    --popover: hsl(228 18% 12%);
+    --popover-foreground: hsl(0 0% 98%);
+    --primary: hsl(27 97% 54%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(228 18% 18%);
+    --secondary-foreground: hsl(0 0% 98%);
+    --muted: hsl(228 18% 18%);
+    --muted-foreground: hsl(220 14% 70%);
+    --accent: hsl(144 52% 53%);
+    --accent-foreground: hsl(0 0% 100%);
+    --destructive: hsl(0 62.8% 30.6%);
+    --destructive-foreground: hsl(210 40% 98%);
+    --border: hsl(228 18% 20%);
+    --input: hsl(228 18% 20%);
+    --ring: hsl(27 97% 54%);
+  }
 }
 
-/* ===============================
-   BASE STYLES (NO BLACK BORDER)
-================================ */
 @layer base {
   * {
-    border-color: oklch(var(--border));
+    @apply border-border;
   }
-
   body {
-    background-color: oklch(var(--background));
-    color: oklch(var(--foreground));
-  }
-}
-
-/* ===============================
-   SWIGGY UTILITIES
-================================ */
-@layer utilities {
-  /* Text */
-  .text-swiggy-orange { color: oklch(var(--swiggy-orange)); }
-  .text-swiggy-green { color: oklch(var(--swiggy-green)); }
-  .text-swiggy-gold { color: oklch(var(--swiggy-gold)); }
-  .text-swiggy-dark { color: oklch(var(--swiggy-dark)); }
-  .text-swiggy-gray { color: oklch(var(--swiggy-gray)); }
-
-  /* Background */
-  .bg-swiggy-orange { background-color: oklch(var(--swiggy-orange)); }
-  .bg-swiggy-green { background-color: oklch(var(--swiggy-green)); }
-  .bg-swiggy-gold { background-color: oklch(var(--swiggy-gold)); }
-  .bg-swiggy-light { background-color: oklch(var(--swiggy-light-gray)); }
-
-  /* Border */
-  .border-swiggy-orange { border-color: oklch(var(--swiggy-orange)); }
-  .border-swiggy-gold { border-color: oklch(var(--swiggy-gold)); }
-
-  /* SVG */
-  .fill-swiggy-orange { fill: oklch(var(--swiggy-orange)); }
-  .fill-swiggy-gold { fill: oklch(var(--swiggy-gold)); }
-}
-
-/* ===============================
-   OPACITY SUPPORT
-================================ */
-@layer utilities {
-  .text-swiggy-gold\/30 { color: oklch(var(--swiggy-gold) / 0.3); }
-  .border-swiggy-gold\/30 { border-color: oklch(var(--swiggy-gold) / 0.3); }
-  .bg-swiggy-gold\/5 { background-color: oklch(var(--swiggy-gold) / 0.05); }
-}
-
-/* ===============================
-   GRADIENT HELPERS
-================================ */
-@layer utilities {
-  .from-swiggy-gold\/5 {
-    --tw-gradient-from: oklch(var(--swiggy-gold) / 0.05);
-    --tw-gradient-to: oklch(var(--swiggy-gold) / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-
-  .to-swiggy-orange\/10 {
-    --tw-gradient-to: oklch(var(--swiggy-orange) / 0.1);
+    @apply bg-background text-foreground font-poppins antialiased;
   }
 }
