@@ -1,10 +1,28 @@
+"use client";
+
 import ShopBanner from "@/src/components/User/Mess/ShopBanner";
 import TodaysMenu from "@/src/components/User/Mess/TodaysMenu";
 import WeeklyMenu from "@/src/components/User/Mess/WeeklyMenu";
 import ExtraItems from "@/src/components/User/Mess/ExtraItems";
 import ReviewsSection from "@/src/components/User/Mess/ReviewsSection";
+import { useEffect  , useState} from "react";
+import axios from "axios";
 
 const page = () => {
+  const [extraItems , setExtraItems] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8080/shop/items/79779fcc-a484-4829-bc25-5b7a4b9149a9');
+        setExtraItems(response.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
   // Shop Data
   const shopData = {
     name: "Maa's Kitchen",
@@ -170,16 +188,16 @@ const page = () => {
   ];
 
   // Extra Items Data
-  const extraItems = [
-    { id: "e1", name: "Buttermilk", price: 20, isVeg: true },
-    { id: "e2", name: "Sweet Lassi", price: 35, isVeg: true },
-    { id: "e3", name: "Extra Roti (4 pcs)", price: 30, isVeg: true },
-    { id: "e4", name: "Extra Rice", price: 25, isVeg: true },
-    { id: "e5", name: "Papad (2 pcs)", price: 15, isVeg: true },
-    { id: "e6", name: "Raita", price: 25, isVeg: true },
-    { id: "e7", name: "Green Salad", price: 20, isVeg: true },
-    { id: "e8", name: "Gulab Jamun (2 pcs)", price: 40, isVeg: true },
-  ];
+  // const extraItems = [
+  //   { id: "e1", name: "Buttermilk", price: 20, isVeg: true },
+  //   { id: "e2", name: "Sweet Lassi", price: 35, isVeg: true },
+  //   { id: "e3", name: "Extra Roti (4 pcs)", price: 30, isVeg: true },
+  //   { id: "e4", name: "Extra Rice", price: 25, isVeg: true },
+  //   { id: "e5", name: "Papad (2 pcs)", price: 15, isVeg: true },
+  //   { id: "e6", name: "Raita", price: 25, isVeg: true },
+  //   { id: "e7", name: "Green Salad", price: 20, isVeg: true },
+  //   { id: "e8", name: "Gulab Jamun (2 pcs)", price: 40, isVeg: true },
+  // ];
 
   // Reviews Data
   const reviews = [

@@ -26,9 +26,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const menuItems = [
-  { title: "Dashboard", url: "/owner", icon: LayoutDashboard },
-  { title: "Menu Management", url: "/owner/menu", icon: UtensilsCrossed },
-  { title: "Orders", url: "/owner/orders", icon: ClipboardList },
+  { title: "Dashboard", url: "/owner/dashboard", icon: LayoutDashboard },
+  { title: "Menu Management", url: "/owner/menu-management", icon: UtensilsCrossed },
+  { title: "Orders", url: "/owner/order", icon: ClipboardList },
   { title: "Profile", url: "/owner/profile", icon: User },
 ];
 

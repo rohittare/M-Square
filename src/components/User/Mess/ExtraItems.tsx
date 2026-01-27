@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface ExtraItem {
-  id: string;
+  itemId: string;
   name: string;
   price: number;
   image?: string;
-  isVeg: boolean;
+  veg: boolean;
 }
 
 interface ExtraItemsProps {
@@ -43,7 +43,7 @@ export default function ExtraItems({ items }: ExtraItemsProps) {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => (
             <div
-              key={item.id}
+              key={item.itemId}
               className="bg-card rounded-xl shadow-soft overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
             >
               {/* Image */}
@@ -62,7 +62,8 @@ export default function ExtraItems({ items }: ExtraItemsProps) {
 
                 {/* Veg indicator */}
                 <div className="absolute top-2 left-2">
-                  {item.isVeg ? (
+                  <div className="w-2 h-2 bg-nonveg rounded-full" />
+                  {item.veg ? (
                     <div className="w-4 h-4 bg-white border border-veg rounded flex items-center justify-center">
                       <div className="w-2 h-2 bg-veg rounded-full" />
                     </div>
