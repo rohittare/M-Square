@@ -9,8 +9,8 @@ interface MenuItem {
   name: string;
   description: string;
   price: number;
-  isVeg: boolean;
-  isAvailable: boolean;
+  veg: boolean;
+  available: boolean;
   image?: string;
 }
 

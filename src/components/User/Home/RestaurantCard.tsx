@@ -2,28 +2,28 @@ import { Star, MapPin, Heart } from "lucide-react";
 
 interface RestaurantCardProps {
   name: string;
-  image: string;
-  cuisines: string[];
-  location: string;
+  picture: string;
+  tags: string[];
+  address: {fullAddress: string};
   rating: number;
   reviews: string;
   discount: string;
   priceForTwo: string;
   distance: string;
-  onAuthRequired?: () => void;
+
 }
 
 const RestaurantCard = ({
   name,
-  image,
-  cuisines,
-  location,
+  picture,
+  tags,
+  address,
   rating,
   reviews,
   discount,
   priceForTwo,
   distance,
-  onAuthRequired,
+
 }: RestaurantCardProps) => {
   const isSaved = (name);
 
@@ -33,7 +33,7 @@ const RestaurantCard = ({
       {/* Image Container */}
       <div className="relative h-40 sm:h-48 overflow-hidden">
         <img 
-          src={image} 
+          src={picture} 
           alt={name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -72,19 +72,19 @@ const RestaurantCard = ({
 
         {/* Cuisines */}
         <p className="text-muted-foreground text-xs sm:text-sm line-clamp-1 mb-1">
-          {cuisines.join(", ")}
+          {tags}
         </p>
 
         {/* Location */}
         <div className="flex items-center gap-1 text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
           <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span className="line-clamp-1">{location}</span>
+          <span className="line-clamp-1">{address?.fullAddress}</span>
         </div>
 
         {/* Bottom Info */}
         <div className="flex items-center justify-between text-xs sm:text-sm pt-2 sm:pt-3 border-t border-border">
-          <span className="text-muted-foreground">{priceForTwo}</span>
-          <span className="text-muted-foreground">{distance}</span>
+          <span className="text-muted-foreground">200$</span>
+          <span className="text-muted-foreground">10km</span>
         </div>
       </div>
     </div>

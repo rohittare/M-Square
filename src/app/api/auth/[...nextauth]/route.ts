@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import axios from "axios";
 import { Session } from "next-auth";
+import { email } from "zod";
 
 declare module "next-auth" {
     interface Session {
@@ -50,48 +51,47 @@ const handler = NextAuth({
 
     ],
 
-    // callbacks: {
-    //     async jwt({ token, user, account }) {
-    //         if (user) {
-    //             token.name = user.name || token.name;
-    //             token.email = user.email || token.email;
-    //             token.picture = user.image || token.picture;
-    //             token.sub = user.id || token.sub;
-    //         }
-            
-    //         if (account && user) {
+    callbacks: {
+        async jwt({ token, user, account }) {
+            if (account && user?.email) {
+                // Call backend ONLY on first login
+                const res = await axios.post(
+                    `${process.env.NEXT_PUBLIC_SERVER}/user`,
+                    {
+                        email: user.email,
+                        name: user.name,
+                        image: user.image,
+                    }
+                );
 
-    //             const obj = {
-    //                 userId : user.id,
-    //                 role: [user.role]
-    //             }
-    //             if (!user.id || !user.role) {
-    //                 console.log("User ID or role is missing in the credentials");
-    //                 return token; // Return the token without customToken if user ID is missing
-    //             }
-    //             try {
-    //                 const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/user/auth/token` , obj);
-    //                 token.customToken = response.data;
-    //             } catch (error) {
-    //                 // throw new Error("Failed to generate custom token");
-    //                 console.log("Failed to generate custom token", error);
-                    
-    //                 token.customToken = null
-    //             }
-    //         }
-    //         return token;
-    //     },
+                token.userId = res.data.userId;
+                token.role = res.data.role;
 
-    //     async session({ session, token }) {
-    //         if (session.user) {
-    //             session.user.name = token.name;
-    //             session.user.email = token.email;
-    //             session.user.image = token.picture;
-    //         }
-    //         session.customToken = typeof token.customToken === 'string' ? token.customToken : undefined;
-    //         return session;
-    //     }
-    // },
+                // // Get backend JWT
+                // const jwtRes = await axios.post(
+                //     `${process.env.NEXT_PUBLIC_SERVER}/user/auth/token`,
+                //     {
+                //         userId: res.data.userId,
+                //         role: [res.data.role]
+                //     }
+                // );
+
+                // token.customToken = jwtRes.data;
+            }
+
+            return token;
+        },
+
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.name = token.name;
+                session.user.email = token.email;
+                session.user.image = token.picture;
+            }
+            session.customToken = typeof token.customToken === 'string' ? token.customToken : undefined;
+            return session;
+        }
+    },
     debug: true
 })
 

@@ -8,68 +8,47 @@ import ReviewsSection from "@/src/components/User/Mess/ReviewsSection";
 import { useEffect  , useState} from "react";
 import axios from "axios";
 
+interface shopInterface {
+  name: string;
+  picture: string ;
+  rating: number;
+  reviewCount: number;
+  address: {fullAddress: string};
+  deliveryTime: string;
+  tags: string;
+  isVeg: boolean;
+}
+
+
+interface todaysSpecialInterface {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  veg: boolean;
+  available: boolean;
+  image?: string;
+}
+
 const page = () => {
   const [extraItems , setExtraItems] = useState([]);
-
+  const [shopDetails , setShopDetails] = useState({});
+  const [todaysSpecial , setTodaysSpecial] = useState([]);
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8080/shop/items/79779fcc-a484-4829-bc25-5b7a4b9149a9');
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/shop/items/79779fcc-a484-4829-bc25-5b7a4b9149a9`);
         setExtraItems(response.data);
+        const shopResponse = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/shops/79779fcc-a484-4829-bc25-5b7a4b9149a9`);
+        setShopDetails(shopResponse.data);
+        const todaysSpecialResponse = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/shop/79779fcc-a484-4829-bc25-5b7a4b9149a9/today-special`);
+        setTodaysSpecial(todaysSpecialResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
     fetchData();
   }, []);
-
-  // Shop Data
-  const shopData = {
-    name: "Maa's Kitchen",
-    image: "https://picsum.photos/200/300",
-    rating: 4.5,
-    reviewCount: 234,
-    location: "Sector 15, Gurugram",
-    deliveryTime: "30-40 min delivery",
-    tags: ["Affordable", "Home-style", "Family Recipes"],
-    isVeg: true,
-  };
-
-  // Today's Menu Data
-  const todaysMenu = [
-    {
-      id: "1",
-      name: "Special Thali",
-      description: "Complete meal with 2 sabzi, dal, rice, 4 roti, salad, pickle & sweet",
-      price: 120,
-      isVeg: true,
-      isAvailable: true,
-    },
-    {
-      id: "2",
-      name: "Paneer Butter Masala",
-      description: "Creamy tomato gravy with soft paneer cubes, served with rice or roti",
-      price: 90,
-      isVeg: true,
-      isAvailable: true,
-    },
-    {
-      id: "3",
-      name: "Dal Tadka",
-      description: "Yellow dal tempered with cumin, garlic and ghee",
-      price: 60,
-      isVeg: true,
-      isAvailable: true,
-    },
-    {
-      id: "4",
-      name: "Aloo Paratha",
-      description: "Crispy whole wheat paratha stuffed with spiced potatoes, served with curd",
-      price: 50,
-      isVeg: true,
-      isAvailable: false,
-    },
-  ];
 
   // Weekly Menu Data
   const weeklyMenu = [
@@ -234,10 +213,10 @@ const page = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Shop Banner */}
-      <ShopBanner {...shopData} />
+      <ShopBanner {...shopDetails as shopInterface} />
 
       {/* Today's Menu */}
-      <TodaysMenu items={todaysMenu} />
+      <TodaysMenu items={todaysSpecial} />
 
       {/* Weekly Menu */}
       <WeeklyMenu weeklyMenu={weeklyMenu} />

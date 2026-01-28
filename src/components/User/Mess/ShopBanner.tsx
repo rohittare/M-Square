@@ -7,31 +7,36 @@ import type { StaticImageData } from "next/image";
 
 interface ShopBannerProps {
   name: string;
-  image: string | StaticImageData;
+  picture: string | StaticImageData;
   rating: number;
   reviewCount: number;
-  location: string;
+  address: {fullAddress: string};
   deliveryTime: string;
-  tags: string[];
+  tags: string;
   isVeg: boolean;
 }
 
 const ShopBanner = ({
   name,
-  image,
+  picture,
   rating,
   reviewCount,
-  location,
+  address,
   deliveryTime,
   tags,
   isVeg,
 }: ShopBannerProps) => {
+
+  //convert tags string to array
+  const tagsArray = tags?.split(',').map(tag => tag.trim());
+
+
   return (
     <div className="relative">
       {/* Banner Image */}
       <div className="h-64 md:h-80 lg:h-96 w-full overflow-hidden">
         <img
-          src={typeof image === "string" ? image : image.src}
+          src={picture as string}
           alt={name}
           className="w-full h-full object-cover"
         />
@@ -56,7 +61,7 @@ const ShopBanner = ({
                     Non-Veg Available
                   </Badge>
                 )}
-                {tags.map((tag) => (
+                {tagsArray?.map((tag) => (
                   <Badge key={tag} variant="secondary" className="bg-white/20 text-white border-0 backdrop-blur-sm">
                     {tag}
                   </Badge>
@@ -81,7 +86,7 @@ const ShopBanner = ({
               <div className="flex flex-wrap items-center gap-4 text-white/90">
                 <div className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
-                  <span>{location}</span>
+                  <span>{address?.fullAddress}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
