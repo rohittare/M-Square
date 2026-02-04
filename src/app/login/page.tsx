@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,10 +17,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from 'next-auth/react'
+import axios from "axios";
+import api from "@/lib/api";
 const loginSchema = z.object({
     email: z.string().trim().email("Please enter a valid email address").max(255),
     password: z.string().min(6, "Password must be at least 6 characters").max(72),
 });
+
+type FieldErrors = {
+    email?: string;
+    password?: string;
+};
+
+type LoginResponse = {
+    token?: string;
+    tokenType?: string;
+    accessToken?: string;
+    userId: string;
+    email: string;
+    role: string;
+};
 
 export default function LoginPage() {
     const router = useRouter();
@@ -29,6 +45,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -36,22 +53,68 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setFieldErrors({});
 
-        const result = { success: true };
-        if (!result.success) {
-            setError("Invalid email or password.");
+        const parsed = loginSchema.safeParse({ email, password });
+        if (!parsed.success) {
+            const fieldErrorMap: FieldErrors = {};
+            const { fieldErrors: zodFieldErrors } = parsed.error.flatten();
+            if (zodFieldErrors.email?.[0]) fieldErrorMap.email = zodFieldErrors.email[0];
+            if (zodFieldErrors.password?.[0]) fieldErrorMap.password = zodFieldErrors.password[0];
+            setFieldErrors(fieldErrorMap);
             return;
         }
 
         setLoading(true);
         try {
-            // api call to next-auth signIn
+            const response = await api.post<LoginResponse>(
+                "/auth/login",
+                parsed.data,
+                { timeout: 10000 }
+            );
 
-            if (error) {
-                setError(null);
+            const responseData = response.data;
+
+            const authHeader =
+                response.headers?.authorization ||
+                response.headers?.Authorization ||
+                response.headers?.AUTHORIZATION;
+            const tokenFromHeader = typeof authHeader === "string"
+                ? authHeader.replace(/^Bearer\s+/i, "")
+                : undefined;
+            const token = responseData.token ?? responseData.accessToken ?? tokenFromHeader;
+
+            if (!token) {
+                setError("Login succeeded but no token was returned.");
+                return;
             }
-        } catch {
-            setError("An unexpected error occurred.");
+
+            if (typeof window !== "undefined") {
+                sessionStorage.setItem("access_token", token);
+                sessionStorage.setItem("token_type", responseData.tokenType ?? "Bearer");
+                sessionStorage.setItem("user_id", responseData.userId);
+                sessionStorage.setItem("user_email", responseData.email);
+                sessionStorage.setItem("user_role", responseData.role);
+            }
+
+            if (responseData?.role) {
+                document.cookie = `auth_role=${responseData.role}; path=/; max-age=300`;
+            }
+
+            router.replace("/");
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                if (err.code === "ECONNABORTED") {
+                    setError("Login request timed out. Please try again.");
+                    return;
+                }
+                const message =
+                    (err.response?.data as { message?: string } | undefined)?.message ??
+                    "Invalid email or password.";
+                setError(message);
+                return;
+            }
+            setError("An unexpected error occurred. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -91,12 +154,22 @@ export default function LoginPage() {
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <Input
+                                    type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="pl-10 h-12 rounded-xl"
                                     placeholder="you@example.com"
+                                    autoComplete="email"
+                                    aria-invalid={Boolean(fieldErrors.email)}
+                                    aria-describedby={fieldErrors.email ? "email-error" : undefined}
+                                    disabled={loading}
                                 />
                             </div>
+                            {fieldErrors.email && (
+                                <p id="email-error" className="text-xs text-destructive mt-1">
+                                    {fieldErrors.email}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -116,19 +189,30 @@ export default function LoginPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="pl-10 pr-12 h-12 rounded-xl"
+                                    autoComplete="current-password"
+                                    aria-invalid={Boolean(fieldErrors.password)}
+                                    aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                                    disabled={loading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                    disabled={loading}
                                 >
                                     {showPassword ? <EyeOff /> : <Eye />}
                                 </button>
                             </div>
+                            {fieldErrors.password && (
+                                <p id="password-error" className="text-xs text-destructive mt-1">
+                                    {fieldErrors.password}
+                                </p>
+                            )}
                         </div>
 
                         <Button
-                            disabled={loading}
+                            disabled={loading || googleLoading}
                             className="w-full h-12 bg-swiggy-orange text-white rounded-xl"
                         >
                             {loading ? (
@@ -152,8 +236,16 @@ export default function LoginPage() {
                     {/* Google */}
                     <Button
                         variant="outline"
-                        onClick={() => signIn("google", { callbackUrl: `${process.env.NEXT_PUBLIC_CLIENT}/` })}
-                        disabled={googleLoading}
+                        onClick={async () => {
+                            setGoogleLoading(true);
+                            document.cookie = "auth_role=user; path=/; max-age=300";
+                            try {
+                                await signIn("google", { callbackUrl: `${process.env.NEXT_PUBLIC_CLIENT}/` });
+                            } finally {
+                                setGoogleLoading(false);
+                            }
+                        }}
+                        disabled={googleLoading || loading}
                         className="w-full h-12 rounded-xl"
                     >
                         {googleLoading ? (
@@ -177,21 +269,20 @@ export default function LoginPage() {
                                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                                 />
                             </svg>
-
                         )}
                         Continue with Google
                     </Button>
 
-                    {/* Footer */}
-                    <p className="text-center text-sm text-muted-foreground">
-                        Don’t have an account?{" "}
-                        <Link href="/register" className="text-swiggy-orange font-medium">
+                {/* Footer */}
+                <p className="text-center text-sm text-muted-foreground">
+                    Don’t have an account?{" "}
+                    <Link href="/register" className="text-swiggy-orange font-medium">
 
-                            Sign up
-                        </Link>
-                    </p>
-                </div>
+                        Sign up
+                    </Link>
+                </p>
             </div>
         </div>
+        </div >
     );
 }

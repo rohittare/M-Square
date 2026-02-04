@@ -9,7 +9,7 @@ import { AddressesSection } from "@/src/components/User/Profile/AddressesSection
 import { SecuritySection } from "@/src/components/User/Profile/SecuritySection";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
+import api from "@/lib/api";
 import { set } from "zod";
 
 export default function Page() {
@@ -20,7 +20,7 @@ export default function Page() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/user/106e909a-ccae-43e5-a9db-243b79036bbe`);
+        const response = await api.get("/user/106e909a-ccae-43e5-a9db-243b79036bbe");
         setUserData(response.data);
       } catch (error) {
         setError("Failed to fetch user data");

@@ -6,7 +6,7 @@ import WeeklyMenu from "@/src/components/User/Mess/WeeklyMenu";
 import ExtraItems from "@/src/components/User/Mess/ExtraItems";
 import ReviewsSection from "@/src/components/User/Mess/ReviewsSection";
 import { useEffect  , useState} from "react";
-import axios from "axios";
+import api from "@/lib/api";
 
 interface shopInterface {
   name: string;
@@ -37,11 +37,11 @@ const page = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/shop/items/79779fcc-a484-4829-bc25-5b7a4b9149a9`);
+        const response = await api.get("/shop/items/79779fcc-a484-4829-bc25-5b7a4b9149a9");
         setExtraItems(response.data);
-        const shopResponse = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/shops/79779fcc-a484-4829-bc25-5b7a4b9149a9`);
+        const shopResponse = await api.get("/shops/79779fcc-a484-4829-bc25-5b7a4b9149a9");
         setShopDetails(shopResponse.data);
-        const todaysSpecialResponse = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/shop/79779fcc-a484-4829-bc25-5b7a4b9149a9/today-special`);
+        const todaysSpecialResponse = await api.get("/shop/79779fcc-a484-4829-bc25-5b7a4b9149a9/today-special");
         setTodaysSpecial(todaysSpecialResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);

@@ -1,10 +1,7 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google";
-// import jwt from 'jsonwebtoken';
-import CredentialsProvider from "next-auth/providers/credentials";
 import axios from "axios";
-import { Session } from "next-auth";
-import { email } from "zod";
+import { cookies } from "next/headers";
 
 declare module "next-auth" {
     interface Session {
@@ -15,6 +12,17 @@ declare module "next-auth" {
         userId?: string;
     }
 }
+
+declare module "next-auth/jwt" {
+    interface JWT {
+        customToken?: string;
+        role?: string;
+        userId?: string;
+    }
+}
+
+const APP_TOKEN_COOKIE = "app_token";
+const ROLE_COOKIE = "auth_role";
 
 const handler = NextAuth({
     session: {
@@ -28,55 +36,45 @@ const handler = NextAuth({
             idToken: true,
         }),
 
-        // CredentialsProvider({
-        //     name: "credentials",
-        //     credentials: {
-        //         userId: { label: "userId", type: "text" },
-        //         email: { label: "email", type: "email" },
-        //         name: { label: "name", type: "text" },
-        //         image: { label: "image", type: "text" },
-        //         role : {label:"role" , type:"text" }
-        //     },
-        //     async authorize(credentials) {
-        //         if (!credentials) return null;
-        //         return {
-        //             id: credentials.userId,
-        //             email: credentials.email,
-        //             name: credentials.name,
-        //             image: credentials.image,
-        //             role: credentials.role
-        //         };
-        //     }
-        // })
-
     ],
 
     callbacks: {
         async jwt({ token, user, account }) {
-            if (account && user?.email) {
-                // Call backend ONLY on first login
-                const res = await axios.post(
-                    `${process.env.NEXT_PUBLIC_SERVER}/user`,
-                    {
-                        email: user.email,
-                        name: user.name,
-                        image: user.image,
+            if (account?.type === "oauth" && user?.email) {
+                const cookieStore = await cookies();
+                const role = cookieStore.get(ROLE_COOKIE)?.value ?? "user";
+
+                try {
+                    const res = await axios.post(
+                        `${process.env.NEXT_PUBLIC_SERVER}/auth/oauth`,
+                        {
+                            idToken: account.id_token, 
+                            role,
+                        }
+                    );
+
+
+                    const appToken =
+                        res.data?.token ??
+                        res.data?.jwt ??
+                        res.data?.accessToken;
+
+                    token.userId = res.data?.userId;
+                    token.role = res.data?.role;
+                    token.customToken = appToken;
+
+                    if (appToken) {
+                        cookieStore.set(APP_TOKEN_COOKIE, appToken, {
+                            httpOnly: true,
+                            sameSite: "lax",
+                            secure: process.env.NODE_ENV === "production",
+                            path: "/",
+                            maxAge: 60 * 60 * 24 * 7,
+                        });
                     }
-                );
-
-                token.userId = res.data.userId;
-                token.role = res.data.role;
-
-                // // Get backend JWT
-                // const jwtRes = await axios.post(
-                //     `${process.env.NEXT_PUBLIC_SERVER}/user/auth/token`,
-                //     {
-                //         userId: res.data.userId,
-                //         role: [res.data.role]
-                //     }
-                // );
-
-                // token.customToken = jwtRes.data;
+                } catch (error) {
+                    console.error("OAuth backend exchange failed:", error);
+                }
             }
 
             return token;

@@ -2,7 +2,7 @@
 
 import RestaurantCard from "./RestaurantCard";
 import { useEffect , useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { set } from "zod";
 
 interface Restaurant {
@@ -119,7 +119,7 @@ const RestaurantGrid = ({ onAuthRequired }: RestaurantGridProps) => {
     useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/public/shops`);
+        const response = await api.get("/public/shops");
         setShops(response.data);
       } catch (error) {
         setError('Error fetching data');
