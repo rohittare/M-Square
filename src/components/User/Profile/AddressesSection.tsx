@@ -20,26 +20,26 @@ import {
 import { toast } from "sonner";
 
 interface Address {
-  id: string;
-  title: string;
-  fullAddress: string;
-  areaLandmark: string;
+  addressId: string;
+  type: string;
+  area: string;
   city: string;
   pincode: string;
-  isDefault: boolean;
+  fullAddress: string;
 }
 
 interface AddressesSectionProps {
   addresses: Address[];
-  onAdd: (address: Omit<Address, "id">) => void;
-  onUpdate: (id: string, address: Omit<Address, "id">) => void;
-  onDelete: (id: string) => void;
+  onAdd: (address: Omit<Address, "addressId">) => Promise<boolean> | boolean;
+  onUpdate: (id: string, address: Omit<Address, "addressId">) => Promise<boolean> | boolean;
+  onDelete: (id: string) => Promise<boolean> | boolean;
+  onFetchAddress: (id: string) => Promise<Address | null>;
 }
 
-const getAddressIcon = (title: string) => {
-  const lowerTitle = title.toLowerCase();
-  if (lowerTitle.includes("home")) return Home;
-  if (lowerTitle.includes("office") || lowerTitle.includes("work")) return Briefcase;
+const getAddressIcon = (type: string) => {
+  const upper = type.toUpperCase();
+  if (upper === "HOME") return Home;
+  if (upper === "WORK") return Briefcase;
   return Building;
 };
 
@@ -48,31 +48,46 @@ export const AddressesSection = ({
   onAdd,
   onUpdate,
   onDelete,
+  onFetchAddress,
 }: AddressesSectionProps) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
-  const handleAdd = (address: Omit<Address, "id">) => {
-    onAdd(address);
-    setIsAddModalOpen(false);
-    toast.success("Address added successfully!");
+  const handleAdd = async (address: Omit<Address, "addressId">) => {
+    const ok = await Promise.resolve(onAdd(address));
+    if (ok !== false) {
+      setIsAddModalOpen(false);
+      toast.success("Address added successfully!");
+    }
   };
 
-  const handleUpdate = (address: Omit<Address, "id">) => {
-    if (editingAddress) {
-      onUpdate(editingAddress.id, address);
+  const handleUpdate = async (address: Omit<Address, "addressId">) => {
+    if (!editingAddress) return;
+    const ok = await Promise.resolve(onUpdate(editingAddress.addressId, address));
+    if (ok !== false) {
       setEditingAddress(null);
       toast.success("Address updated successfully!");
     }
   };
 
-  const handleDelete = () => {
-    if (deletingId) {
-      onDelete(deletingId);
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    const ok = await Promise.resolve(onDelete(deletingId));
+    if (ok !== false) {
       setDeletingId(null);
       toast.success("Address deleted successfully!");
     }
+  };
+
+  const handleEditClick = async (id: string) => {
+    setLoadingEdit(true);
+    const data = await onFetchAddress(id);
+    if (data) {
+      setEditingAddress(data);
+    }
+    setLoadingEdit(false);
   };
 
   return (
@@ -101,10 +116,10 @@ export const AddressesSection = ({
             </div>
           ) : (
             addresses.map((address) => {
-              const Icon = getAddressIcon(address.title);
+              const Icon = getAddressIcon(address.type);
               return (
                 <div
-                  key={address.id}
+                  key={address.addressId}
                   className="flex items-start gap-4 p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 transition-colors"
                 >
                   <div className="p-3 bg-primary/10 rounded-lg">
@@ -112,16 +127,16 @@ export const AddressesSection = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground">{address.title}</h3>
-                      {address.isDefault && (
-                        <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
-                          Default
-                        </Badge>
-                      )}
+                      <h3 className="font-semibold text-foreground">{address.type}</h3>
+                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                        {address.area}
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{address.fullAddress}</p>
                     <p className="text-sm text-muted-foreground">
-                      {address.areaLandmark}, {address.city} - {address.pincode}
+                      {address.fullAddress}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {address.city} - {address.pincode}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -129,7 +144,8 @@ export const AddressesSection = ({
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                      onClick={() => setEditingAddress(address)}
+                      onClick={() => handleEditClick(address.addressId)}
+                      disabled={loadingEdit}
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -137,7 +153,7 @@ export const AddressesSection = ({
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setDeletingId(address.id)}
+                      onClick={() => setDeletingId(address.addressId)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Mail, Phone, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
 
 interface Profile {
   fullName: string;
@@ -17,7 +16,7 @@ interface Profile {
 
 interface ProfileInfoProps {
   profile: Profile;
-  onUpdate: (profile: Profile) => void;
+  onUpdate: (profile: Profile) => Promise<boolean> | boolean;
 }
 
 export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
@@ -25,10 +24,19 @@ export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
     fullName: profile.fullName,
     phone: profile.phone,
   });
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    onUpdate({ ...profile, ...formData });
-    toast.success("Profile information updated!");
+  useEffect(() => {
+    setFormData({
+      fullName: profile.fullName,
+      phone: profile.phone,
+    });
+  }, [profile]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await Promise.resolve(onUpdate({ ...profile, ...formData }));
+    setSaving(false);
   };
 
   return (
@@ -52,6 +60,7 @@ export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
               className="pl-10 bg-background border-input focus:border-primary"
               placeholder="Enter your full name"
+              disabled={saving}
             />
           </div>
         </div>
@@ -84,13 +93,18 @@ export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="pl-10 bg-background border-input focus:border-primary"
               placeholder="+91 98765 43210"
+              disabled={saving}
             />
           </div>
         </div>
 
-        <Button onClick={handleSave} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
+        <Button
+          onClick={handleSave}
+          className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+          disabled={saving}
+        >
           <Save className="w-4 h-4 mr-2" />
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </CardContent>
     </Card>

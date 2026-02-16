@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,22 +10,27 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Address {
-  title: string;
-  fullAddress: string;
-  areaLandmark: string;
+  type: string;
+  area: string;
   city: string;
   pincode: string;
-  isDefault: boolean;
+  fullAddress: string;
 }
 
 interface AddressFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (address: Omit<Address, "id">) => void;
+  onSubmit: (address: Omit<Address, "id">) => Promise<boolean> | boolean;
   initialData?: Address;
   title: string;
 }
@@ -38,21 +43,52 @@ export default function AddressFormModal({
   title,
 }: AddressFormModalProps) {
   const [form, setForm] = useState<Omit<Address, "id">>({
-    title: initialData?.title || "Home",
-    fullAddress: initialData?.fullAddress || "",
-    areaLandmark: initialData?.areaLandmark || "",
+    type: initialData?.type || "HOME",
+    area: initialData?.area || "",
     city: initialData?.city || "",
     pincode: initialData?.pincode || "",
-    isDefault: initialData?.isDefault || false,
+    fullAddress: initialData?.fullAddress || "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      type: initialData?.type || "HOME",
+      area: initialData?.area || "",
+      city: initialData?.city || "",
+      pincode: initialData?.pincode || "",
+      fullAddress: initialData?.fullAddress || "",
+    });
+    setErrors({});
+  }, [initialData, isOpen]);
 
   const handleChange = (key: keyof typeof form, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
-  const handleSubmit = () => {
-    onSubmit(form);
-    onClose();
+  const validate = () => {
+    const nextErrors: Record<string, string> = {};
+    if (!form.type) nextErrors.type = "Please select a type.";
+    if (!form.area.trim()) nextErrors.area = "Area is required.";
+    if (!form.city.trim()) nextErrors.city = "City is required.";
+    if (!/^\d{6}$/.test(form.pincode.trim())) {
+      nextErrors.pincode = "Pincode must be 6 digits.";
+    }
+    if (!form.fullAddress.trim()) nextErrors.fullAddress = "Full address is required.";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    const ok = await Promise.resolve(onSubmit(form));
+    setSaving(false);
+    if (ok !== false) {
+      onClose();
+    }
   };
 
   return (
@@ -64,75 +100,89 @@ export default function AddressFormModal({
 
         {/* Form */}
         <div className="space-y-4 mt-4">
-          {/* Address Type */}
           <div className="space-y-2">
             <Label>Address Type</Label>
-            <Input
-              placeholder="Home"
-              value={form.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
+            <Select
+              value={form.type}
+              onValueChange={(value) => handleChange("type", value)}
+              disabled={saving}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="HOME">Home</SelectItem>
+                <SelectItem value="WORK">Work</SelectItem>
+                <SelectItem value="OTHER">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.type && (
+              <p className="text-xs text-destructive">{errors.type}</p>
+            )}
           </div>
 
-          {/* Full Address */}
           <div className="space-y-2">
-            <Label>Full Address</Label>
+            <Label>Area</Label>
             <Input
-              placeholder="House/Flat No., Building Name, Street"
-              value={form.fullAddress}
-              onChange={(e) => handleChange("fullAddress", e.target.value)}
+              placeholder="Kothrud"
+              value={form.area}
+              onChange={(e) => handleChange("area", e.target.value)}
+              disabled={saving}
             />
+            {errors.area && (
+              <p className="text-xs text-destructive">{errors.area}</p>
+            )}
           </div>
 
-          {/* Area / Landmark */}
-          <div className="space-y-2">
-            <Label>Area / Landmark</Label>
-            <Input
-              placeholder="Near Main Gate, Opposite Park"
-              value={form.areaLandmark}
-              onChange={(e) => handleChange("areaLandmark", e.target.value)}
-            />
-          </div>
-
-          {/* City */}
           <div className="space-y-2">
             <Label>City</Label>
             <Input
-              placeholder="Mumbai"
+              placeholder="Pune"
               value={form.city}
               onChange={(e) => handleChange("city", e.target.value)}
+              disabled={saving}
             />
+            {errors.city && (
+              <p className="text-xs text-destructive">{errors.city}</p>
+            )}
           </div>
 
-          {/* Pincode */}
           <div className="space-y-2">
             <Label>Pincode</Label>
             <Input
-              placeholder="400001"
+              placeholder="411038"
               value={form.pincode}
-              onChange={(e) => handleChange("pincode", e.target.value)}
+              onChange={(e) =>
+                handleChange("pincode", e.target.value.replace(/\D/g, ""))
+              }
+              disabled={saving}
             />
+            {errors.pincode && (
+              <p className="text-xs text-destructive">{errors.pincode}</p>
+            )}
           </div>
 
-          {/* Default Address */}
-          <div className="flex items-center space-x-2 pt-2">
-            <Checkbox
-              checked={form.isDefault}
-              onCheckedChange={(checked) =>
-                handleChange("isDefault", Boolean(checked))
-              }
+          <div className="space-y-2">
+            <Label>Full Address</Label>
+            <Input
+              placeholder="Flat 302, Shree Residency, Paud Road, Kothrud"
+              value={form.fullAddress}
+              onChange={(e) => handleChange("fullAddress", e.target.value)}
+              disabled={saving}
             />
-            <Label>Set as default address</Label>
+            {errors.fullAddress && (
+              <p className="text-xs text-destructive">{errors.fullAddress}</p>
+            )}
           </div>
         </div>
 
         {/* Footer Buttons */}
         <DialogFooter className="mt-6 flex gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button variant="outline" onClick={onClose} className="flex-1" disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="flex-1">
-            Save Address
+          <Button onClick={handleSubmit} className="flex-1" disabled={saving}>
+            {saving ? "Saving..." : "Save Address"}
           </Button>
         </DialogFooter>
       </DialogContent>
