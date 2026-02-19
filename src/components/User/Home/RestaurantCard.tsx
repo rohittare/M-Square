@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { Star, MapPin, Heart } from "lucide-react";
 
 interface RestaurantCardProps {
+  id?: string;
   name: string;
   picture: string;
-  tags: string[];
+  tags: string[] | string;
   address: {fullAddress: string};
   rating: number;
   reviews: string;
@@ -14,6 +16,7 @@ interface RestaurantCardProps {
 }
 
 const RestaurantCard = ({
+  id,
   name,
   picture,
   tags,
@@ -26,10 +29,10 @@ const RestaurantCard = ({
 
 }: RestaurantCardProps) => {
   const isSaved = (name);
+  const tagsLabel = Array.isArray(tags) ? tags.join(", ") : tags;
 
-
-  return (
-    <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group">
+  const cardContent = (
+    <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow group">
       {/* Image Container */}
       <div className="relative h-40 sm:h-48 overflow-hidden">
         <img 
@@ -72,7 +75,7 @@ const RestaurantCard = ({
 
         {/* Cuisines */}
         <p className="text-muted-foreground text-xs sm:text-sm line-clamp-1 mb-1">
-          {tags}
+          {tagsLabel}
         </p>
 
         {/* Location */}
@@ -88,6 +91,16 @@ const RestaurantCard = ({
         </div>
       </div>
     </div>
+  );
+
+  if (!id) {
+    return <div className="cursor-default">{cardContent}</div>;
+  }
+
+  return (
+    <Link href={`/mess/${id}`} className="cursor-pointer">
+      {cardContent}
+    </Link>
   );
 };
 

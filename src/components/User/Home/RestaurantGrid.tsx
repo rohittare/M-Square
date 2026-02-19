@@ -3,12 +3,13 @@
 import RestaurantCard from "./RestaurantCard";
 import { useEffect , useState } from "react";
 import api from "@/lib/api";
-import { set } from "zod";
 
 interface Restaurant {
+  id?: string;
+  shopId?: string;
   name: string;
   picture: string;
-  tags: string[];
+  tags: string[] | string;
   address: {fullAddress: string};
   rating: number;
   reviews: string;
@@ -142,12 +143,21 @@ const RestaurantGrid = ({ onAuthRequired }: RestaurantGridProps) => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-          {shops.map((shop, index) => (
-            <RestaurantCard 
-              key={index} 
-              {...(shop as unknown as Restaurant)} 
-            />
-          ))}
+          {shops.map((shop, index) => {
+            const record = shop as unknown as Restaurant & Record<string, unknown>;
+            const shopId =
+              (record.id as string | undefined) ??
+              (record.shopId as string | undefined) ??
+              (record.shop_id as string | undefined);
+
+            return (
+              <RestaurantCard 
+                key={shopId ?? index}
+                id={shopId}
+                {...record} 
+              />
+            );
+          })}
         </div>
       </div>
     </section>

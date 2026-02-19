@@ -1,26 +1,30 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import api from "@/lib/api";
+import axios from "axios";
+import { Button } from "@/components/ui/button";
+
 import ShopBanner from "@/src/components/User/Mess/ShopBanner";
 import TodaysMenu from "@/src/components/User/Mess/TodaysMenu";
 import WeeklyMenu from "@/src/components/User/Mess/WeeklyMenu";
 import ExtraItems from "@/src/components/User/Mess/ExtraItems";
 import ReviewsSection from "@/src/components/User/Mess/ReviewsSection";
-import { useEffect  , useState} from "react";
-import api from "@/lib/api";
 
-interface shopInterface {
+interface ShopBannerData {
   name: string;
-  picture: string ;
+  picture: string;
   rating: number;
   reviewCount: number;
-  address: {fullAddress: string};
+  address: { fullAddress: string };
   deliveryTime: string;
   tags: string;
   isVeg: boolean;
 }
 
-
-interface todaysSpecialInterface {
+interface TodaysSpecialItem {
   id: string;
   name: string;
   description: string;
@@ -30,27 +34,135 @@ interface todaysSpecialInterface {
   image?: string;
 }
 
-const page = () => {
-  const [extraItems , setExtraItems] = useState([]);
-  const [shopDetails , setShopDetails] = useState({});
-  const [todaysSpecial , setTodaysSpecial] = useState([]);
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get("/shop/items/79779fcc-a484-4829-bc25-5b7a4b9149a9");
-        setExtraItems(response.data);
-        const shopResponse = await api.get("/shops/79779fcc-a484-4829-bc25-5b7a4b9149a9");
-        setShopDetails(shopResponse.data);
-        const todaysSpecialResponse = await api.get("/shop/79779fcc-a484-4829-bc25-5b7a4b9149a9/today-special");
-        setTodaysSpecial(todaysSpecialResponse.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+interface ExtraItem {
+  itemId: string;
+  name: string;
+  price: number;
+  image?: string;
+  veg: boolean;
+}
 
-  // Weekly Menu Data
+interface Review {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+  avatar?: string;
+}
+
+interface ShopDetails {
+  name?: string;
+  picture?: string;
+  rating?: number;
+  reviewCount?: number;
+  address?: { fullAddress?: string };
+  deliveryTime?: string;
+  tags?: string | string[];
+  isVeg?: boolean;
+}
+
+const Page = () => {
+  const router = useRouter();
+  const params = useParams();
+
+  const shopId = useMemo(() => {
+    const rawId = params?.id;
+    if (Array.isArray(rawId)) return rawId[0] ?? "";
+    return typeof rawId === "string" ? rawId : "";
+  }, [params]);
+
+  const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
+  const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
+  const [todaysSpecial, setTodaysSpecial] = useState<TodaysSpecialItem[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!shopId) {
+      setError("Mess Not Found");
+      setIsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      const results = await Promise.allSettled([
+        api.get(`/shops/${shopId}`),
+        api.get(`/shop/items/${shopId}`),
+        api.get(`/shop/${shopId}/today-special`),
+        api.get(`/shop/${shopId}/reviews`),
+        api.get(`/shop/${shopId}/ratings`),
+      ]);
+
+      if (!isMounted) return;
+
+      const [shopResult, itemsResult, todayResult, reviewsResult, ratingsResult] =
+        results;
+
+      if (shopResult.status === "fulfilled") {
+        setShopDetails(shopResult.value.data ?? null);
+      } else if (
+        axios.isAxiosError(shopResult.reason) &&
+        shopResult.reason.response?.status === 404
+      ) {
+        setError("Mess Not Found");
+      } else {
+        setError("Unable to load mess details.");
+      }
+
+      if (itemsResult.status === "fulfilled") {
+        setExtraItems(
+          Array.isArray(itemsResult.value.data) ? itemsResult.value.data : []
+        );
+      } else {
+        setExtraItems([]);
+      }
+
+      if (todayResult.status === "fulfilled") {
+        setTodaysSpecial(
+          Array.isArray(todayResult.value.data) ? todayResult.value.data : []
+        );
+      } else {
+        setTodaysSpecial([]);
+      }
+
+      if (reviewsResult.status === "fulfilled") {
+        setReviews(
+          Array.isArray(reviewsResult.value.data) ? reviewsResult.value.data : []
+        );
+      } else {
+        setReviews([]);
+      }
+
+      if (ratingsResult.status === "fulfilled") {
+        const ratingData = ratingsResult.value.data as
+          | { averageRating?: number; totalReviews?: number }
+          | null;
+        setAverageRating(Number(ratingData?.averageRating ?? 0));
+        setTotalReviews(Number(ratingData?.totalReviews ?? 0));
+      } else {
+        setAverageRating(0);
+        setTotalReviews(0);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [shopId]);
+
   const weeklyMenu = [
     {
       day: "Monday",
@@ -166,81 +278,90 @@ const page = () => {
     },
   ];
 
-  // Extra Items Data
-  // const extraItems = [
-  //   { id: "e1", name: "Buttermilk", price: 20, isVeg: true },
-  //   { id: "e2", name: "Sweet Lassi", price: 35, isVeg: true },
-  //   { id: "e3", name: "Extra Roti (4 pcs)", price: 30, isVeg: true },
-  //   { id: "e4", name: "Extra Rice", price: 25, isVeg: true },
-  //   { id: "e5", name: "Papad (2 pcs)", price: 15, isVeg: true },
-  //   { id: "e6", name: "Raita", price: 25, isVeg: true },
-  //   { id: "e7", name: "Green Salad", price: 20, isVeg: true },
-  //   { id: "e8", name: "Gulab Jamun (2 pcs)", price: 40, isVeg: true },
-  // ];
-
-  // Reviews Data
-  const reviews = [
-    {
-      id: "r1",
-      userName: "Priya Sharma",
-      rating: 5,
-      comment: "Amazing home-style food! The paneer dishes are just like my mom makes. Highly recommended for anyone missing ghar ka khana.",
-      date: "2 days ago",
-    },
-    {
-      id: "r2",
-      userName: "Rahul Verma",
-      rating: 4,
-      comment: "Good quantity and taste. Delivery is always on time. The thali is value for money!",
-      date: "1 week ago",
-    },
-    {
-      id: "r3",
-      userName: "Sneha Gupta",
-      rating: 5,
-      comment: "Best tiffin service in the area. Fresh ingredients and consistent quality every day.",
-      date: "2 weeks ago",
-    },
-    {
-      id: "r4",
-      userName: "Amit Kumar",
-      rating: 4,
-      comment: "Tasty food with good variety. Would love to see more South Indian options.",
-      date: "3 weeks ago",
-    },
-  ];
+  const tagsValue = shopDetails?.tags;
+  const normalizedTags = Array.isArray(tagsValue)
+    ? tagsValue.join(", ")
+    : tagsValue ?? "";
+  const deliveryTimeLabel = shopDetails?.deliveryTime
+    ? String(shopDetails.deliveryTime)
+    : "N/A";
+  const bannerProps: ShopBannerData | null = shopDetails
+    ? {
+        name: shopDetails.name ?? "Mess",
+        picture: shopDetails.picture ?? "",
+        rating: Number(shopDetails.rating ?? averageRating ?? 0),
+        reviewCount: Number(
+          shopDetails.reviewCount ?? totalReviews ?? reviews.length
+        ),
+        address: {
+          fullAddress: shopDetails.address?.fullAddress ?? "",
+        },
+        deliveryTime: deliveryTimeLabel,
+        tags: normalizedTags,
+        isVeg: Boolean(shopDetails.isVeg ?? false),
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Shop Banner */}
-      <ShopBanner {...shopDetails as shopInterface} />
+      <div className="container mx-auto px-4 pt-6">
+        <Button
+          variant="ghost"
+          className="mb-4 text-muted-foreground hover:text-foreground"
+          onClick={() => router.push("/")}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Button>
+      </div>
 
-      {/* Today's Menu */}
-      <TodaysMenu items={todaysSpecial} />
-
-      {/* Weekly Menu */}
-      <WeeklyMenu weeklyMenu={weeklyMenu} />
-
-      {/* Extra Items */}
-      <ExtraItems items={extraItems} />
-
-      {/* Reviews Section */}
-      <ReviewsSection
-        averageRating={4.5}
-        totalReviews={234}
-        reviews={reviews}
-      />
-
-      {/* Footer */}
-      <footer className="bg-card border-t border-border py-6">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground text-sm">
-            © 2024 FoodConnect - Connecting you with home-style meals
-          </p>
+      {isLoading && (
+        <div className="container mx-auto px-4 py-10 flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading mess details...
         </div>
-      </footer>
+      )}
+
+      {!isLoading && error && (
+        <div className="container mx-auto px-4 py-10">
+          <div className="rounded-xl border border-border bg-card p-6 text-center">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              {error}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Please check the link and try again.
+            </p>
+            <Button className="mt-4" onClick={() => router.push("/")}>
+              Go Back
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !error && bannerProps && (
+        <>
+          <ShopBanner {...bannerProps} />
+          <TodaysMenu items={todaysSpecial} />
+          <WeeklyMenu weeklyMenu={weeklyMenu} />
+          <ExtraItems items={extraItems} />
+          <ReviewsSection
+            averageRating={averageRating || Number(shopDetails?.rating ?? 0)}
+            totalReviews={
+              totalReviews || Number(shopDetails?.reviewCount ?? reviews.length)
+            }
+            reviews={reviews}
+          />
+          <footer className="bg-card border-t border-border py-6">
+            <div className="container mx-auto px-4 text-center">
+              <p className="text-muted-foreground text-sm">
+                (c) 2024 FoodConnect - Connecting you with home-style meals
+              </p>
+            </div>
+          </footer>
+        </>
+      )}
     </div>
   );
 };
 
-export default page;
+export default Page;

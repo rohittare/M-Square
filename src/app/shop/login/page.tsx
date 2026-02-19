@@ -238,7 +238,7 @@ export default function ShopLoginPage() {
                             setGoogleLoading(true);
                             document.cookie = "auth_role=SHOP; path=/; max-age=300";
                             try {
-                                await signIn("google", { callbackUrl: `${process.env.NEXT_PUBLIC_CLIENT}/` });
+                                await signIn("google", { callbackUrl: `${process.env.NEXT_PUBLIC_CLIENT}/owner/dashboard` });
                             } finally {
                                 setGoogleLoading(false);
                             }

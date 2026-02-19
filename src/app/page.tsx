@@ -17,9 +17,9 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Header/>
 
-      <DineoutHero />
+      {/* <DineoutHero /> */}
       <FilterBar />
-      <CollectionsSection />
+      {/* <CollectionsSection /> */}
 
       <RestaurantGrid  />
 
