@@ -39,9 +39,9 @@ const TodaysMenu = ({ items }: TodaysMenuProps) => {
 
         {/* Menu Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {items.map((item) => (
+          {items.map((item , i) => (
             <MenuCard
-              key={item.id}
+              key={item?.id || i}
               {...item}
               onAdd={() => handleAdd(item)}
             />

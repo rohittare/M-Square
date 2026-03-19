@@ -62,6 +62,29 @@ interface ShopDetails {
   isVeg?: boolean;
 }
 
+interface WeeklyBhajiDTO {
+  weeklyBhajiId: string;
+  shopId: string;
+  dayOfWeek: string;   // "MONDAY", "TUESDAY" ...
+  mealTime: string;    // "LUNCH", "DINNER"
+  bhajiName: string;
+}
+
+// Structured chart from GET /bhaji/chart
+interface BhajiChartDTO {
+  chart: {
+    [day: string]: {
+      LUNCH: string;
+      DINNER: string;
+    };
+  };
+}
+
+interface WeeklyMenuProps {
+  bhajiChart: BhajiChartDTO;
+}
+
+
 const Page = () => {
   const router = useRouter();
   const params = useParams();
@@ -80,6 +103,7 @@ const Page = () => {
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bhajiChart, setBhajiChart] = useState<BhajiChartDTO>({ chart: {} });
 
   useEffect(() => {
     if (!shopId) {
@@ -100,11 +124,12 @@ const Page = () => {
         api.get(`/shop/${shopId}/today-special`),
         api.get(`/shop/${shopId}/reviews`),
         api.get(`/shop/${shopId}/ratings`),
+        api.get(`/api/shops/${shopId}/bhaji/chart`)
       ]);
 
       if (!isMounted) return;
 
-      const [shopResult, itemsResult, todayResult, reviewsResult, ratingsResult] =
+      const [shopResult, itemsResult, todayResult, reviewsResult, ratingsResult, bhajiChartResult] =
         results;
 
       if (shopResult.status === "fulfilled") {
@@ -130,7 +155,11 @@ const Page = () => {
         setTodaysSpecial(
           Array.isArray(todayResult.value.data) ? todayResult.value.data : []
         );
-      } else {
+      }
+      if (bhajiChartResult.status === "fulfilled") {
+        setBhajiChart(bhajiChartResult.value.data);
+      }
+      else {
         setTodaysSpecial([]);
       }
 
@@ -287,19 +316,19 @@ const Page = () => {
     : "N/A";
   const bannerProps: ShopBannerData | null = shopDetails
     ? {
-        name: shopDetails.name ?? "Mess",
-        picture: shopDetails.picture ?? "",
-        rating: Number(shopDetails.rating ?? averageRating ?? 0),
-        reviewCount: Number(
-          shopDetails.reviewCount ?? totalReviews ?? reviews.length
-        ),
-        address: {
-          fullAddress: shopDetails.address?.fullAddress ?? "",
-        },
-        deliveryTime: deliveryTimeLabel,
-        tags: normalizedTags,
-        isVeg: Boolean(shopDetails.isVeg ?? false),
-      }
+      name: shopDetails.name ?? "Mess",
+      picture: shopDetails.picture ?? "",
+      rating: Number(shopDetails.rating ?? averageRating ?? 0),
+      reviewCount: Number(
+        shopDetails.reviewCount ?? totalReviews ?? reviews.length
+      ),
+      address: {
+        fullAddress: shopDetails.address?.fullAddress ?? "",
+      },
+      deliveryTime: deliveryTimeLabel,
+      tags: normalizedTags,
+      isVeg: Boolean(shopDetails.isVeg ?? false),
+    }
     : null;
 
   return (
@@ -342,7 +371,7 @@ const Page = () => {
         <>
           <ShopBanner {...bannerProps} />
           <TodaysMenu items={todaysSpecial} />
-          <WeeklyMenu weeklyMenu={weeklyMenu} />
+          <WeeklyMenu bhajiChart={bhajiChart} />
           <ExtraItems items={extraItems} />
           <ReviewsSection
             averageRating={averageRating || Number(shopDetails?.rating ?? 0)}
