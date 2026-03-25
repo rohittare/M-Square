@@ -1,6 +1,17 @@
 "use client";
 
-import { User, Phone, MapPin, CreditCard, MessageSquare, Check, X, ChefHat, Truck } from "lucide-react";
+import {
+  User,
+  Phone,
+  MapPin,
+  CreditCard,
+  MessageSquare,
+  Check,
+  X,
+  ChefHat,
+  Truck,
+  CheckCircle2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,23 +22,34 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { formatCurrency, getOrderStatusLabel, type OrderStatus } from "@/lib/owner";
 import { Order } from "./OrderCard";
 
-const statusStyles: Record<Order["status"], string> = {
-  New: "bg-blue-100 text-blue-700",
-  Preparing: "bg-amber-100 text-amber-700",
-  "Out for Delivery": "bg-purple-100 text-purple-700",
-  Completed: "bg-green-100 text-green-700",
-  Cancelled: "bg-red-100 text-red-700",
+const statusStyles: Record<OrderStatus, string> = {
+  PLACED: "bg-blue-100 text-blue-700",
+  ACCEPTED: "bg-indigo-100 text-indigo-700",
+  PREPARING: "bg-amber-100 text-amber-700",
+  READY: "bg-purple-100 text-purple-700",
+  DELIVERED: "bg-green-100 text-green-700",
+  CANCELLED: "bg-red-100 text-red-700",
+  REJECTED: "bg-red-100 text-red-700",
 };
 
-const statusTimeline: Order["status"][] = ["New", "Preparing", "Out for Delivery", "Completed"];
+const statusTimeline: OrderStatus[] = [
+  "PLACED",
+  "ACCEPTED",
+  "PREPARING",
+  "READY",
+  "DELIVERED",
+];
 
 interface OrderDetailsModalProps {
   order: Order | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateStatus: (orderId: string, status: Order["status"]) => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
+  onRejectOrder: (orderId: string) => void;
+  isUpdating?: boolean;
 }
 
 export function OrderDetailsModal({
@@ -35,12 +57,15 @@ export function OrderDetailsModal({
   open,
   onOpenChange,
   onUpdateStatus,
+  onRejectOrder,
+  isUpdating = false,
 }: OrderDetailsModalProps) {
   if (!order) return null;
 
   const currentStatusIndex = statusTimeline.indexOf(order.status);
-  const isCancelled = order.status === "Cancelled";
-  const isCompleted = order.status === "Completed";
+  const isCancelled =
+    order.status === "CANCELLED" || order.status === "REJECTED";
+  const isCompleted = order.status === "DELIVERED";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,7 +74,7 @@ export function OrderDetailsModal({
           <DialogTitle className="flex items-center justify-between">
             <span>Order #{order.id}</span>
             <Badge className={cn("text-xs", statusStyles[order.status])}>
-              {order.status}
+              {getOrderStatusLabel(order.status)}
             </Badge>
           </DialogTitle>
         </DialogHeader>
@@ -60,7 +85,8 @@ export function OrderDetailsModal({
             <div className="relative">
               <div className="flex items-center justify-between">
                 {statusTimeline.map((status, index) => {
-                  const isActive = index <= currentStatusIndex;
+                  const isActive =
+                    currentStatusIndex === -1 ? false : index <= currentStatusIndex;
                   const isCurrent = index === currentStatusIndex;
                   return (
                     <div key={status} className="flex flex-col items-center flex-1">
@@ -78,10 +104,12 @@ export function OrderDetailsModal({
                       <span
                         className={cn(
                           "text-xs mt-1 text-center",
-                          isActive ? "text-foreground font-medium" : "text-muted-foreground"
+                          isActive
+                            ? "text-foreground font-medium"
+                            : "text-muted-foreground"
                         )}
                       >
-                        {status}
+                        {getOrderStatusLabel(status)}
                       </span>
                     </div>
                   );
@@ -90,7 +118,12 @@ export function OrderDetailsModal({
               <div className="absolute top-4 left-0 right-0 h-0.5 bg-muted -z-10">
                 <div
                   className="h-full bg-swiggy-orange transition-all"
-                  style={{ width: `${(currentStatusIndex / (statusTimeline.length - 1)) * 100}%` }}
+                  style={{
+                    width:
+                      currentStatusIndex > 0
+                        ? `${(currentStatusIndex / (statusTimeline.length - 1)) * 100}%`
+                        : "0%",
+                  }}
                 />
               </div>
             </div>
@@ -128,13 +161,19 @@ export function OrderDetailsModal({
                   <span>
                     {item.quantity}x {item.name}
                   </span>
-                  <span className="font-medium">₹{item.price * item.quantity}</span>
+                  <span className="font-medium">
+                    {"\u20B9"}
+                    {formatCurrency(item.priceAtOrderTime * item.quantity)}
+                  </span>
                 </div>
               ))}
             </div>
             <div className="flex justify-between items-center pt-2 border-t font-semibold">
               <span>Total</span>
-              <span className="text-swiggy-orange">₹{order.totalAmount}</span>
+              <span className="text-swiggy-orange">
+                {"\u20B9"}
+                {formatCurrency(order.totalAmount)}
+              </span>
             </div>
           </div>
 
@@ -144,12 +183,16 @@ export function OrderDetailsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sm">
               <CreditCard className="w-4 h-4 text-muted-foreground" />
-              <span>Payment: {order.paymentMethod}</span>
+              <span>
+                Payment: {order.paymentMethod || "Not specified"}
+              </span>
             </div>
             {order.specialInstructions && (
               <div className="flex items-start gap-3 text-sm">
                 <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
-                <span className="text-muted-foreground">{order.specialInstructions}</span>
+                <span className="text-muted-foreground">
+                  {order.specialInstructions}
+                </span>
               </div>
             )}
           </div>
@@ -159,41 +202,57 @@ export function OrderDetailsModal({
             <>
               <Separator />
               <div className="flex flex-wrap gap-2">
-                {order.status === "New" && (
+                {order.status === "PLACED" && (
+                  <>
+                    <Button
+                      onClick={() => onUpdateStatus(order.id, "ACCEPTED")}
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600"
+                      disabled={isUpdating}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Accept Order
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => onRejectOrder(order.id)}
+                      className="flex-1 text-destructive border-destructive hover:bg-destructive/10"
+                      disabled={isUpdating}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Reject Order
+                    </Button>
+                  </>
+                )}
+                {order.status === "ACCEPTED" && (
                   <Button
-                    onClick={() => onUpdateStatus(order.id, "Preparing")}
+                    onClick={() => onUpdateStatus(order.id, "PREPARING")}
                     className="flex-1 bg-amber-500 hover:bg-amber-600"
+                    disabled={isUpdating}
                   >
                     <ChefHat className="w-4 h-4 mr-2" />
                     Start Preparing
                   </Button>
                 )}
-                {order.status === "Preparing" && (
+                {order.status === "PREPARING" && (
                   <Button
-                    onClick={() => onUpdateStatus(order.id, "Out for Delivery")}
+                    onClick={() => onUpdateStatus(order.id, "READY")}
                     className="flex-1 bg-purple-500 hover:bg-purple-600"
+                    disabled={isUpdating}
                   >
                     <Truck className="w-4 h-4 mr-2" />
-                    Out for Delivery
+                    Mark Ready
                   </Button>
                 )}
-                {order.status === "Out for Delivery" && (
+                {order.status === "READY" && (
                   <Button
-                    onClick={() => onUpdateStatus(order.id, "Completed")}
+                    onClick={() => onUpdateStatus(order.id, "DELIVERED")}
                     className="flex-1 bg-green-500 hover:bg-green-600"
+                    disabled={isUpdating}
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    Mark Completed
+                    Mark Delivered
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={() => onUpdateStatus(order.id, "Cancelled")}
-                  className="text-destructive border-destructive hover:bg-destructive/10"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel Order
-                </Button>
               </div>
             </>
           )}

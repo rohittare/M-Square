@@ -80,6 +80,7 @@ export function OrderFilters({
           <SelectItem value="Breakfast">Breakfast</SelectItem>
           <SelectItem value="Lunch">Lunch</SelectItem>
           <SelectItem value="Dinner">Dinner</SelectItem>
+          <SelectItem value="Other">Other</SelectItem>
         </SelectContent>
       </Select>
 
@@ -93,6 +94,7 @@ export function OrderFilters({
           <SelectItem value="Cash">Cash</SelectItem>
           <SelectItem value="UPI">UPI</SelectItem>
           <SelectItem value="Card">Card</SelectItem>
+          <SelectItem value="Other">Other</SelectItem>
         </SelectContent>
       </Select>
     </div>
