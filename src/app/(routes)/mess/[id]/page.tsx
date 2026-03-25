@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronUp, Loader2, ShoppingBag, X } from "lucide-react";
 import api from "@/lib/api";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import ShopBanner from "@/src/components/User/Mess/ShopBanner";
 import TodaysMenu from "@/src/components/User/Mess/TodaysMenu";
@@ -40,6 +41,13 @@ interface ExtraItem {
   price: number;
   image?: string;
   veg: boolean;
+}
+
+interface CartItem {
+  itemId: string;
+  itemName: string;
+  price: number;
+  quantity: number;
 }
 
 interface Review {
@@ -80,11 +88,6 @@ interface BhajiChartDTO {
   };
 }
 
-interface WeeklyMenuProps {
-  bhajiChart: BhajiChartDTO;
-}
-
-
 const Page = () => {
   const router = useRouter();
   const params = useParams();
@@ -104,6 +107,12 @@ const Page = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bhajiChart, setBhajiChart] = useState<BhajiChartDTO>({ chart: {} });
+  const [cart, setCart] = useState<Record<string, CartItem>>({});
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef<number | null>(null);
 
   useEffect(() => {
     if (!shopId) {
@@ -192,120 +201,182 @@ const Page = () => {
     };
   }, [shopId]);
 
-  const weeklyMenu = [
-    {
-      day: "Monday",
-      shortDay: "Mon",
-      lunch: [
-        { name: "Dal Tadka", isVeg: true },
-        { name: "Aloo Gobi", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Salad", isVeg: true },
-      ],
-      dinner: [
-        { name: "Paneer Do Pyaza", isVeg: true },
-        { name: "Mix Veg", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Raita", isVeg: true },
-      ],
-    },
-    {
-      day: "Tuesday",
-      shortDay: "Tue",
-      lunch: [
-        { name: "Rajma", isVeg: true },
-        { name: "Bhindi Fry", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Pickle", isVeg: true },
-      ],
-      dinner: [
-        { name: "Shahi Paneer", isVeg: true },
-        { name: "Jeera Aloo", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Salad", isVeg: true },
-      ],
-    },
-    {
-      day: "Wednesday",
-      shortDay: "Wed",
-      lunch: [
-        { name: "Chole", isVeg: true },
-        { name: "Baingan Bharta", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Onion", isVeg: true },
-      ],
-      dinner: [
-        { name: "Kadai Paneer", isVeg: true },
-        { name: "Lauki Sabzi", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Papad", isVeg: true },
-      ],
-    },
-    {
-      day: "Thursday",
-      shortDay: "Thu",
-      lunch: [
-        { name: "Kadhi Pakora", isVeg: true },
-        { name: "Aloo Matar", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Salad", isVeg: true },
-      ],
-      dinner: [
-        { name: "Palak Paneer", isVeg: true },
-        { name: "Dum Aloo", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Raita", isVeg: true },
-      ],
-    },
-    {
-      day: "Friday",
-      shortDay: "Fri",
-      lunch: [
-        { name: "Dal Makhani", isVeg: true },
-        { name: "Cabbage Sabzi", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Sweet", isVeg: true },
-      ],
-      dinner: [
-        { name: "Matar Paneer", isVeg: true },
-        { name: "Tinda Masala", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Salad", isVeg: true },
-      ],
-    },
-    {
-      day: "Saturday",
-      shortDay: "Sat",
-      lunch: [
-        { name: "Puri Sabzi", isVeg: true },
-        { name: "Chana Masala", isVeg: true },
-        { name: "Rice", isVeg: true },
-        { name: "Pickle", isVeg: true },
-      ],
-      dinner: [
-        { name: "Paneer Tikka Masala", isVeg: true },
-        { name: "Seasonal Sabzi", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Raita", isVeg: true },
-      ],
-    },
-    {
-      day: "Sunday",
-      shortDay: "Sun",
-      lunch: [
-        { name: "Special Thali", isVeg: true },
-        { name: "Kheer", isVeg: true },
-        { name: "Rice & Roti", isVeg: true },
-        { name: "Papad", isVeg: true },
-      ],
-      dinner: [
-        { name: "Malai Kofta", isVeg: true },
-        { name: "Mix Veg", isVeg: true },
-        { name: "Rice & Naan", isVeg: true },
-        { name: "Gulab Jamun", isVeg: true },
-      ],
-    },
-  ];
+  const cartItems = useMemo(() => Object.values(cart), [cart]);
+  const itemCount = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
+    [cartItems]
+  );
+  const totalAmount = useMemo(
+    () =>
+      cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cartItems]
+  );
+
+  useEffect(() => {
+    if (!isSheetOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isSheetOpen]);
+
+  useEffect(() => {
+    if (!isSheetOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSheetOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSheetOpen]);
+
+  useEffect(() => {
+    if (isSheetOpen) return;
+    setDragOffset(0);
+    setIsDragging(false);
+    dragStartY.current = null;
+  }, [isSheetOpen]);
+
+  useEffect(() => {
+    if (itemCount === 0) {
+      setIsSheetOpen(false);
+    }
+  }, [itemCount]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value);
+
+  const addToCart = (itemId: string, itemName: string, price: number) => {
+    const wasInCart = Boolean(cart[itemId]);
+    setCart((prev) => {
+      const existing = prev[itemId];
+      const nextQuantity = existing ? existing.quantity + 1 : 1;
+      return {
+        ...prev,
+        [itemId]: {
+          itemId,
+          itemName,
+          price,
+          quantity: nextQuantity,
+        },
+      };
+    });
+    if (!wasInCart) {
+      toast.success(`${itemName} added to your order.`);
+    }
+  };
+
+  const updateQuantity = (itemId: string, delta: number) => {
+    setCart((prev) => {
+      const existing = prev[itemId];
+      if (!existing) return prev;
+      const nextQuantity = existing.quantity + delta;
+      if (nextQuantity <= 0) {
+        const { [itemId]: _, ...rest } = prev;
+        return rest;
+      }
+      return {
+        ...prev,
+        [itemId]: {
+          ...existing,
+          quantity: nextQuantity,
+        },
+      };
+    });
+  };
+
+  const handleAddTodaysSpecial = (item: TodaysSpecialItem) => {
+    addToCart(item.id, item.name, item.price);
+  };
+
+  const handleAddExtraItem = (item: ExtraItem) => {
+    addToCart(item.itemId, item.name, item.price);
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!shopId || cartItems.length === 0) return;
+    setIsPlacingOrder(true);
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_SERVER ?? "";
+      const endpoint = baseUrl ? `${baseUrl}/api/orders` : "/api/orders";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          shopId,
+          items: cartItems.map((item) => ({
+            itemId: item.itemId,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          (data as { message?: string } | null)?.message ??
+          "Failed to place order.";
+        throw new Error(message);
+      }
+
+      toast.success("Order placed successfully!");
+      setCart({});
+      setIsSheetOpen(false);
+
+      const orderId =
+        (data as { orderId?: string; id?: string } | null)?.orderId ??
+        (data as { orderId?: string; id?: string } | null)?.id;
+
+      if (orderId) {
+        router.push(`/orders/${orderId}`);
+      } else {
+        router.push("/orders");
+      }
+    } catch (err) {
+      const rawMessage =
+        err instanceof Error ? err.message : "Connection error, please retry.";
+      const normalized = rawMessage.toLowerCase();
+      const message =
+        normalized.includes("failed to fetch") || normalized.includes("network")
+          ? "Connection error, please retry."
+          : rawMessage;
+      toast.error(message);
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  const handleDragStart = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isSheetOpen) return;
+    dragStartY.current = event.clientY;
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleDragMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isSheetOpen || dragStartY.current === null) return;
+    const delta = event.clientY - dragStartY.current;
+    setDragOffset(delta > 0 ? delta : 0);
+  };
+
+  const handleDragEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isSheetOpen || dragStartY.current === null) return;
+    const delta = event.clientY - dragStartY.current;
+    if (delta > 120) {
+      setIsSheetOpen(false);
+    }
+    setDragOffset(0);
+    setIsDragging(false);
+    dragStartY.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
 
   const tagsValue = shopDetails?.tags;
   const normalizedTags = Array.isArray(tagsValue)
@@ -330,6 +401,10 @@ const Page = () => {
       isVeg: Boolean(shopDetails.isVeg ?? false),
     }
     : null;
+  const sheetTransform = isSheetOpen
+    ? `translateY(${dragOffset}px)`
+    : "translateY(100%)";
+  const isFabVisible = itemCount > 0 && !isSheetOpen;
 
   return (
     <div className="min-h-screen bg-background">
@@ -370,9 +445,19 @@ const Page = () => {
       {!isLoading && !error && bannerProps && (
         <>
           <ShopBanner {...bannerProps} />
-          <TodaysMenu items={todaysSpecial} />
+          <TodaysMenu
+            items={todaysSpecial}
+            cart={cart}
+            onAdd={handleAddTodaysSpecial}
+            onUpdateQuantity={updateQuantity}
+          />
           <WeeklyMenu bhajiChart={bhajiChart} />
-          <ExtraItems items={extraItems} />
+          <ExtraItems
+            items={extraItems}
+            cart={cart}
+            onAdd={handleAddExtraItem}
+            onUpdateQuantity={updateQuantity}
+          />
           <ReviewsSection
             averageRating={averageRating || Number(shopDetails?.rating ?? 0)}
             totalReviews={
@@ -389,6 +474,138 @@ const Page = () => {
           </footer>
         </>
       )}
+
+      {/* Floating Cart Button */}
+      <button
+        type="button"
+        onClick={() => setIsSheetOpen(true)}
+        className={`fixed bottom-4 left-4 right-4 z-40 flex items-center justify-between gap-4 rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-lg transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 ${
+          isFabVisible
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-24 opacity-0"
+        } md:left-auto md:right-6 md:w-[360px]`}
+        aria-label="Open cart"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+            <ShoppingBag className="h-5 w-5" />
+          </span>
+          <div className="text-left">
+            <p className="text-sm text-primary-foreground/80">
+              {itemCount} item{itemCount === 1 ? "" : "s"}
+            </p>
+            <p className="text-base font-semibold">
+              ₹{formatCurrency(totalAmount)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          View Cart
+          <ChevronUp className="h-4 w-4" />
+        </div>
+      </button>
+
+      {/* Bottom Sheet Overlay */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
+          isSheetOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setIsSheetOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Bottom Sheet */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-sheet-title"
+        className={`fixed bottom-0 left-0 right-0 z-50 mx-auto flex w-full max-w-lg max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl md:rounded-2xl ${
+          isDragging
+            ? "transition-none"
+            : "transition-transform duration-300 ease-out"
+        } ${isSheetOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+        style={{ transform: sheetTransform }}
+      >
+        <div
+          className="flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+        >
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+        </div>
+
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <h2 id="cart-sheet-title" className="text-lg font-semibold">
+              Your Order
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {itemCount} item{itemCount === 1 ? "" : "s"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSheetOpen(false)}
+            className="h-11 w-11 rounded-full border border-border text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            aria-label="Close cart"
+          >
+            <X className="mx-auto h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {cartItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Your cart is empty. Add items to get started.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {cartItems.map((item) => (
+                <div key={item.itemId} className="py-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {item.itemName}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        ₹{formatCurrency(item.price)} x {item.quantity}
+                      </p>
+                    </div>
+                    <span className="font-semibold text-foreground">
+                      ₹{formatCurrency(item.price * item.quantity)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-border bg-secondary/30 px-5 py-4">
+          <div className="flex items-center justify-between text-base font-semibold mb-4">
+            <span>Total</span>
+            <span className="text-lg text-primary">
+              ₹{formatCurrency(totalAmount)}
+            </span>
+          </div>
+          <Button
+            onClick={handlePlaceOrder}
+            disabled={isPlacingOrder || cartItems.length === 0}
+            className="h-12 w-full rounded-xl text-base font-semibold"
+          >
+            {isPlacingOrder ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Placing Order...
+              </>
+            ) : (
+              "Place Order"
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -2,7 +2,6 @@
 
 import { Sparkles } from "lucide-react";
 import MenuCard from "./MenuCard";
-import { toast } from "sonner";
 
 interface MenuItem {
   id: string;
@@ -16,13 +15,12 @@ interface MenuItem {
 
 interface TodaysMenuProps {
   items: MenuItem[];
+  cart: Record<string, { quantity: number }>;
+  onAdd: (item: MenuItem) => void;
+  onUpdateQuantity: (itemId: string, delta: number) => void;
 }
 
-const TodaysMenu = ({ items }: TodaysMenuProps) => {
-  const handleAdd = (item: MenuItem) => {
-    toast.success(`${item.name} has been added to your order.`);
-  };
-
+const TodaysMenu = ({ items, cart, onAdd, onUpdateQuantity }: TodaysMenuProps) => {
   return (
     <section className="py-8">
       <div className="container mx-auto px-4">
@@ -39,13 +37,19 @@ const TodaysMenu = ({ items }: TodaysMenuProps) => {
 
         {/* Menu Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {items.map((item , i) => (
-            <MenuCard
-              key={item?.id || i}
-              {...item}
-              onAdd={() => handleAdd(item)}
-            />
-          ))}
+          {items.map((item , i) => {
+            const quantity = cart[item.id]?.quantity ?? 0;
+            return (
+              <MenuCard
+                key={item?.id || i}
+                {...item}
+                quantity={quantity}
+                onAdd={() => onAdd(item)}
+                onIncrease={() => onUpdateQuantity(item.id, 1)}
+                onDecrease={() => onUpdateQuantity(item.id, -1)}
+              />
+            );
+          })}
         </div>
       </div>
     </section>
