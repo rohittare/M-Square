@@ -3,6 +3,7 @@
 import {
   LayoutDashboard,
   UtensilsCrossed,
+  CalendarDays,
   ClipboardList,
   User,
   LogOut,
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 const menuItems = [
   { title: "Dashboard", url: "/owner/dashboard", icon: LayoutDashboard },
   { title: "Menu Management", url: "/owner/menu-management", icon: UtensilsCrossed },
+  { title: "Weekly Bhaji Menu", url: "/owner/weekly-bhaji-menu", icon: CalendarDays },
   { title: "Orders", url: "/owner/order", icon: ClipboardList },
   { title: "Profile", url: "/owner/profile", icon: User },
 ];

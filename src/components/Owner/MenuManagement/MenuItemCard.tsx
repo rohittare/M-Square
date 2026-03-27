@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, Star, Leaf, Drumstick } from "lucide-react";
+import { Edit2, Trash2, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 export interface MenuItem {
   id: string;
   name: string;
-  category: "Breakfast" | "Lunch" | "Dinner" | "Snacks";
+  category: string;
   price: number;
   isVeg: boolean;
   isAvailable: boolean;
@@ -57,6 +57,8 @@ export function MenuItemCard({
     Dinner: "bg-purple-100 text-purple-800",
     Snacks: "bg-blue-100 text-blue-800",
   };
+  const categoryClass =
+    categoryColors[item.category] ?? "bg-muted text-muted-foreground";
 
   return (
     <Card
@@ -109,7 +111,7 @@ export function MenuItemCard({
 
             {/* Category & Price Row */}
             <div className="flex items-center gap-3 flex-wrap">
-              <Badge variant="secondary" className={categoryColors[item.category]}>
+              <Badge variant="secondary" className={categoryClass}>
                 {item.category}
               </Badge>
 

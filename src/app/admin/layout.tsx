@@ -9,7 +9,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ProtectedRoute allowedRoles={["ADMIN"]} loginRedirect="/login">
+    <ProtectedRoute allowedRoles={["USER" , "SHOP"]} loginRedirect="/login">
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           <div className="hidden md:block">

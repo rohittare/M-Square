@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,13 +18,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -32,8 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { MenuItem } from "./MenuItemCard";
 
 const menuItemSchema = z.object({
-  name: z.string().min(1, "Item name is required").max(100),
-  category: z.enum(["Breakfast", "Lunch", "Dinner", "Snacks"]),
+  name: z.string().trim().min(1, "Item name is required").max(100),
+  category: z.string().trim().min(1, "Category is required").max(50),
   price: z.coerce.number().min(1, "Price must be at least ₹1"),
   description: z.string().max(200).optional(),
   isVeg: z.boolean(),
@@ -47,21 +40,28 @@ type MenuItemFormData = z.infer<typeof menuItemSchema>;
 interface MenuFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  categories?: string[];
   editItem?: MenuItem | null;
-  onSubmit: (data: MenuItem) => void;
+  onSubmit: (data: MenuItem) => void | Promise<void>;
 }
 
 export function MenuFormModal({
   open,
   onOpenChange,
+  categories = [],
   editItem,
   onSubmit,
 }: MenuFormModalProps) {
+  const categorySuggestionsId = useId();
+  const categoryOptions = useMemo(
+    () => categories.map((category) => category.trim()).filter(Boolean),
+    [categories]
+  );
   const form = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
     defaultValues: {
       name: "",
-      category: "Lunch",
+      category: "",
       price: 0,
       description: "",
       isVeg: true,
@@ -74,6 +74,7 @@ export function MenuFormModal({
   const isSpecial = form.watch("isSpecial");
 
   useEffect(() => {
+    if (!open) return;
     if (editItem) {
       form.reset({
         name: editItem.name,
@@ -86,9 +87,10 @@ export function MenuFormModal({
         specialPrice: editItem.specialPrice,
       });
     } else {
+      const fallbackCategory = categoryOptions[0] ?? "";
       form.reset({
         name: "",
-        category: "Lunch",
+        category: fallbackCategory,
         price: 0,
         description: "",
         isVeg: true,
@@ -97,7 +99,7 @@ export function MenuFormModal({
         specialPrice: undefined,
       });
     }
-  }, [editItem, form, open]);
+  }, [editItem, form, open, categoryOptions]);
 
   const handleSubmit = (data: MenuItemFormData) => {
     const menuItem: MenuItem = {
@@ -148,19 +150,20 @@ export function MenuFormModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Breakfast">Breakfast</SelectItem>
-                      <SelectItem value="Lunch">Lunch</SelectItem>
-                      <SelectItem value="Dinner">Dinner</SelectItem>
-                      <SelectItem value="Snacks">Snacks</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Main Course"
+                      list={categorySuggestionsId}
+                      {...field}
+                    />
+                  </FormControl>
+                  {categoryOptions.length > 0 && (
+                    <datalist id={categorySuggestionsId}>
+                      {categoryOptions.map((category) => (
+                        <option key={category} value={category} />
+                      ))}
+                    </datalist>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

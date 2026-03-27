@@ -49,7 +49,7 @@ export interface ShopItem {
 export const getShopIdFromStorage = () => {
   if (typeof window === "undefined") return null;
   return (
-    sessionStorage.getItem("shop_id") ??
+    sessionStorage.getItem("user_id") ??
     sessionStorage.getItem("shopId") ??
     null
   );

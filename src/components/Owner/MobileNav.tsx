@@ -3,6 +3,7 @@
 import {
   LayoutDashboard,
   UtensilsCrossed,
+  CalendarDays,
   ClipboardList,
   User,
 } from "lucide-react";
@@ -11,9 +12,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
-  { title: "Dashboard", url: "/owner", icon: LayoutDashboard },
-  { title: "Menu", url: "/owner/menu", icon: UtensilsCrossed },
-  { title: "Orders", url: "/owner/orders", icon: ClipboardList },
+  { title: "Dashboard", url: "/owner/dashboard", icon: LayoutDashboard },
+  { title: "Menu", url: "/owner/menu-management", icon: UtensilsCrossed },
+  { title: "Bhaji", url: "/owner/weekly-bhaji-menu", icon: CalendarDays },
+  { title: "Orders", url: "/owner/order", icon: ClipboardList },
   { title: "Profile", url: "/owner/profile", icon: User },
 ];
 

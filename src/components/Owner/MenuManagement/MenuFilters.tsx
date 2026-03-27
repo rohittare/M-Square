@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 interface MenuFiltersProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  categories: string[];
   categoryFilter: string;
   onCategoryChange: (category: string) => void;
   availabilityFilter: string;
@@ -17,12 +18,12 @@ interface MenuFiltersProps {
 export function MenuFilters({
   searchQuery,
   onSearchChange,
+  categories,
   categoryFilter,
   onCategoryChange,
   availabilityFilter,
   onAvailabilityChange,
 }: MenuFiltersProps) {
-  const categories = ["All", "Breakfast", "Lunch", "Dinner", "Snacks"];
   const availabilities = ["All", "Available", "Sold Out"];
 
   return (
@@ -43,7 +44,7 @@ export function MenuFilters({
         {/* Category Filter */}
         <div className="space-y-2">
           <span className="text-sm font-medium text-muted-foreground">
-            Meal Type
+            Category
           </span>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (

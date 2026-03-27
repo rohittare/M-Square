@@ -301,23 +301,18 @@ const Page = () => {
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_SERVER ?? "";
-      const endpoint = baseUrl ? `${baseUrl}/api/orders` : "/api/orders";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          shopId,
-          items: cartItems.map((item) => ({
-            itemId: item.itemId,
-            quantity: item.quantity,
-          })),
-        }),
-      });
+      const endpoint = baseUrl ? `${baseUrl}/orders` : "/orders";
+      const response = await api.post(endpoint , {
+        shopId,
+        items: cartItems.map((item) => ({
+          itemId: item.itemId,
+          quantity: item.quantity,
+        })),
+      })
 
-      const data = await response.json().catch(() => null);
+      const data = await response.data;
 
-      if (!response.ok) {
+      if (!response.status || response.status < 200 || response.status >= 300) {
         const message =
           (data as { message?: string } | null)?.message ??
           "Failed to place order.";
@@ -332,11 +327,6 @@ const Page = () => {
         (data as { orderId?: string; id?: string } | null)?.orderId ??
         (data as { orderId?: string; id?: string } | null)?.id;
 
-      if (orderId) {
-        router.push(`/orders/${orderId}`);
-      } else {
-        router.push("/orders");
-      }
     } catch (err) {
       const rawMessage =
         err instanceof Error ? err.message : "Connection error, please retry.";
