@@ -1,7 +1,7 @@
 "use client";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/src/components/Admin/AdminSidebar";
-import { AdminMobileNav } from "@/src/components/admin/AdminMobileNav";
+import { AdminMobileNav } from "@/src/components/Admin/AdminMobileNav";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute";
 export default function MainLayout({
   children,
