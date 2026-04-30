@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -35,7 +35,8 @@ const menuItemSchema = z.object({
   specialPrice: z.coerce.number().optional(),
 });
 
-type MenuItemFormData = z.infer<typeof menuItemSchema>;
+type MenuItemFormInput = z.input<typeof menuItemSchema>;
+type MenuItemFormData = z.output<typeof menuItemSchema>;
 
 interface MenuFormModalProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function MenuFormModal({
     () => categories.map((category) => category.trim()).filter(Boolean),
     [categories]
   );
-  const form = useForm<MenuItemFormData>({
+  const form = useForm<MenuItemFormInput, unknown, MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
     defaultValues: {
       name: "",
@@ -71,7 +72,10 @@ export function MenuFormModal({
     },
   });
 
-  const isSpecial = form.watch("isSpecial");
+  const isSpecial = useWatch({
+    control: form.control,
+    name: "isSpecial",
+  }) ?? false;
 
   useEffect(() => {
     if (!open) return;
@@ -101,7 +105,7 @@ export function MenuFormModal({
     }
   }, [editItem, form, open, categoryOptions]);
 
-  const handleSubmit = (data: MenuItemFormData) => {
+  const handleSubmit = async (data: MenuItemFormData) => {
     const menuItem: MenuItem = {
       id: editItem?.id || crypto.randomUUID(),
       name: data.name,
@@ -113,7 +117,7 @@ export function MenuFormModal({
       isSpecial: data.isSpecial,
       specialPrice: data.isSpecial ? data.specialPrice : undefined,
     };
-    onSubmit(menuItem);
+    await Promise.resolve(onSubmit(menuItem));
     onOpenChange(false);
   };
 
@@ -178,7 +182,20 @@ export function MenuFormModal({
                   <FormItem>
                     <FormLabel>Price (₹)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={
+                          typeof field.value === "number" ||
+                          typeof field.value === "string"
+                            ? field.value
+                            : ""
+                        }
+                        onChange={(event) => field.onChange(event.target.value)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -193,7 +210,20 @@ export function MenuFormModal({
                     <FormItem>
                       <FormLabel>Special Price (₹)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="0" {...field} />
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          name={field.name}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          value={
+                            typeof field.value === "number" ||
+                            typeof field.value === "string"
+                              ? field.value
+                              : ""
+                          }
+                          onChange={(event) => field.onChange(event.target.value)}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -298,3 +328,4 @@ export function MenuFormModal({
     </Dialog>
   );
 }
+

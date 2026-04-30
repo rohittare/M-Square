@@ -28,7 +28,7 @@ export default function Page() {
 
   type Address = {
     addressId: string;
-    userId: string;
+    userId?: string;
     type: string;
     area: string;
     city: string;
@@ -245,7 +245,7 @@ export default function Page() {
     }
     const parsed = addressSchema.safeParse(address);
     if (!parsed.success) {
-      toast.error(parsed.error.errors?.[0]?.message ?? "Invalid address data.");
+      toast.error( "Invalid address data.");
       return false;
     }
 
@@ -280,7 +280,7 @@ export default function Page() {
     }
     const parsed = addressSchema.safeParse(address);
     if (!parsed.success) {
-      toast.error(parsed.error.errors?.[0]?.message ?? "Invalid address data.");
+      toast.error("Invalid address data.");
       return false;
     }
 

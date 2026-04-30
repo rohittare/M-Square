@@ -61,15 +61,17 @@ export const AddressesSection = ({
       setIsAddModalOpen(false);
       toast.success("Address added successfully!");
     }
+    return ok !== false;
   };
 
   const handleUpdate = async (address: Omit<Address, "addressId">) => {
-    if (!editingAddress) return;
+    if (!editingAddress) return false;
     const ok = await Promise.resolve(onUpdate(editingAddress.addressId, address));
     if (ok !== false) {
       setEditingAddress(null);
       toast.success("Address updated successfully!");
     }
+    return ok !== false;
   };
 
   const handleDelete = async () => {
@@ -166,6 +168,7 @@ export const AddressesSection = ({
       </Card>
 
       <AddressFormModal
+        key={isAddModalOpen ? "add-open" : "add-closed"}
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleAdd}
@@ -173,6 +176,7 @@ export const AddressesSection = ({
       />
 
       <AddressFormModal
+        key={editingAddress?.addressId ?? "edit-closed"}
         isOpen={!!editingAddress}
         onClose={() => setEditingAddress(null)}
         onSubmit={handleUpdate}

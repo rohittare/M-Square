@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ interface Address {
 interface AddressFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (address: Omit<Address, "id">) => Promise<boolean> | boolean;
+  onSubmit: (address: Omit<Address, "addressId">) => Promise<boolean> | boolean;
   initialData?: Address;
   title: string;
 }
@@ -42,28 +42,39 @@ export default function AddressFormModal({
   initialData,
   title,
 }: AddressFormModalProps) {
-  const [form, setForm] = useState<Omit<Address, "id">>({
-    type: initialData?.type || "HOME",
-    area: initialData?.area || "",
-    city: initialData?.city || "",
-    pincode: initialData?.pincode || "",
-    fullAddress: initialData?.fullAddress || "",
+  const createInitialForm = (data?: Address): Omit<Address, "addressId"> => ({
+    type: data?.type || "HOME",
+    area: data?.area || "",
+    city: data?.city || "",
+    pincode: data?.pincode || "",
+    fullAddress: data?.fullAddress || "",
   });
+
+  const [form, setForm] = useState<Omit<Address, "addressId">>(() =>
+    createInitialForm(initialData)
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setForm({
-      type: initialData?.type || "HOME",
-      area: initialData?.area || "",
-      city: initialData?.city || "",
-      pincode: initialData?.pincode || "",
-      fullAddress: initialData?.fullAddress || "",
-    });
+  const resetAndClose = () => {
+    setForm(createInitialForm(initialData));
     setErrors({});
-  }, [initialData, isOpen]);
+    onClose();
+  };
 
-  const handleChange = (key: keyof typeof form, value: any) => {
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetAndClose();
+    }
+  };
+
+  const handleCancel = () => {
+    if (!saving) {
+      resetAndClose();
+    }
+  };
+
+  const handleChange = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: "" }));
   };
@@ -87,12 +98,12 @@ export default function AddressFormModal({
     const ok = await Promise.resolve(onSubmit(form));
     setSaving(false);
     if (ok !== false) {
-      onClose();
+      resetAndClose();
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -178,7 +189,7 @@ export default function AddressFormModal({
 
         {/* Footer Buttons */}
         <DialogFooter className="mt-6 flex gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1" disabled={saving}>
+          <Button variant="outline" onClick={handleCancel} className="flex-1" disabled={saving}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} className="flex-1" disabled={saving}>

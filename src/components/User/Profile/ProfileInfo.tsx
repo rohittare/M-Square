@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { User, Mail, Phone, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,23 +20,28 @@ interface ProfileInfoProps {
 }
 
 export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
-  const [formData, setFormData] = useState({
+  type ProfileFormState = Pick<Profile, "fullName" | "phone">;
+  const [draft, setDraft] = useState<ProfileFormState | null>(null);
+  const [saving, setSaving] = useState(false);
+  const formData: ProfileFormState = draft ?? {
     fullName: profile.fullName,
     phone: profile.phone,
-  });
-  const [saving, setSaving] = useState(false);
+  };
 
-  useEffect(() => {
-    setFormData({
-      fullName: profile.fullName,
-      phone: profile.phone,
-    });
-  }, [profile]);
+  const handleChange = (field: keyof ProfileFormState, value: string) => {
+    setDraft((prev) => ({
+      ...(prev ?? { fullName: profile.fullName, phone: profile.phone }),
+      [field]: value,
+    }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    await Promise.resolve(onUpdate({ ...profile, ...formData }));
+    const ok = await Promise.resolve(onUpdate({ ...profile, ...formData }));
     setSaving(false);
+    if (ok !== false) {
+      setDraft(null);
+    }
   };
 
   return (
@@ -57,7 +62,7 @@ export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
             <Input
               id="fullName"
               value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              onChange={(e) => handleChange("fullName", e.target.value)}
               className="pl-10 bg-background border-input focus:border-primary"
               placeholder="Enter your full name"
               disabled={saving}
@@ -90,7 +95,7 @@ export const ProfileInfo = ({ profile, onUpdate }: ProfileInfoProps) => {
             <Input
               id="phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => handleChange("phone", e.target.value)}
               className="pl-10 bg-background border-input focus:border-primary"
               placeholder="+91 98765 43210"
               disabled={saving}
